@@ -68,11 +68,17 @@ function formatMileage(mileage) {
   return `${n.toLocaleString('en-NZ')} km`;
 }
 
+// Custom parameter values can't contain spaces (Google Ads rejects the whole row
+// with "illegal characters in the string" if they do) - e.g. "Land Rover" or "A 180".
+function sanitizeParamValue(value) {
+  return value.trim().replace(/\s+/g, '_');
+}
+
 function buildCustomParameter(row) {
   const parts = [];
-  if (row.vehicle_make) parts.push(`{_make}=${row.vehicle_make}`);
-  if (row.vehicle_model) parts.push(`{_model}=${row.vehicle_model}`);
-  if (row.vehicle_year) parts.push(`{_year}=${row.vehicle_year}`);
+  if (row.vehicle_make) parts.push(`{_make}=${sanitizeParamValue(row.vehicle_make)}`);
+  if (row.vehicle_model) parts.push(`{_model}=${sanitizeParamValue(row.vehicle_model)}`);
+  if (row.vehicle_year) parts.push(`{_year}=${sanitizeParamValue(row.vehicle_year)}`);
   return parts.join(';');
 }
 
