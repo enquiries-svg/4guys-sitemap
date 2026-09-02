@@ -1,0 +1,43 @@
+name: Generate vehicle sitemap
+
+on:
+  schedule:
+    # Runs at 06:00 and 18:00 UTC (approx 6pm and 6am NZT) - adjust as needed.
+    - cron: '0 6,18 * * *'
+  workflow_dispatch: {} # lets you trigger a run manually from the Actions tab
+
+permissions:
+  contents: write
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Install headless browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Generate sitemap.xml
+        run: node crawl-sitemap.js
+
+      - name: Commit and push sitemap.xml if it changed
+        run: |
+          git config user.name "4guys-sitemap-bot"
+          git config user.email "actions@github.com"
+          if git diff --quiet -- sitemap.xml; then
+            echo "No changes to sitemap.xml - skipping commit."
+          else
+            git add sitemap.xml
+            git commit -m "Update sitemap.xml ($(date -u +%Y-%m-%d))"
+            git push
+          fi
