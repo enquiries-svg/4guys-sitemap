@@ -1,0 +1,12 @@
+{
+  "name": "4guys-sitemap",
+  "version": "1.0.0",
+  "description": "Generates a sitemap.xml for 4Guys Autobarn's vehicle detail pages, which Squarespace's own sitemap excludes.",
+  "private": true,
+  "scripts": {
+    "generate": "node crawl-sitemap.js"
+  },
+  "dependencies": {
+    "playwright": "^1.47.0"
+  }
+}
