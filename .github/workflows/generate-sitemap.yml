@@ -30,14 +30,19 @@ jobs:
       - name: Generate sitemap.xml
         run: node crawl-sitemap.js
 
-      - name: Commit and push sitemap.xml if it changed
+      - name: Generate remarketing-feed.csv
+        env:
+          AUTOPLAY_API_KEY: ${{ secrets.AUTOPLAY_API_KEY }}
+        run: node build-remarketing-feed.js
+
+      - name: Commit and push generated files if they changed
         run: |
           git config user.name "4guys-sitemap-bot"
           git config user.email "actions@github.com"
-          git add sitemap.xml
+          git add sitemap.xml remarketing-feed.csv
           if git diff --cached --quiet; then
-            echo "No changes to sitemap.xml - skipping commit."
+            echo "No changes to commit."
           else
-            git commit -m "Update sitemap.xml ($(date -u +%Y-%m-%d))"
+            git commit -m "Update sitemap.xml and remarketing-feed.csv ($(date -u +%Y-%m-%d))"
             git push
           fi
