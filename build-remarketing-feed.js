@@ -14,6 +14,11 @@ const AUTOPLAY_ID = '75';
 const AUTOPLAY_YARDS = '27';
 const OUTPUT_FILE = 'remarketing-feed.csv';
 
+// 4Guys Autobarn's single dealership address - matches the registered Google
+// Business Profile location exactly (Business data > Google My Business locations).
+// Used by Google Ads as a proximity signal, not displayed verbatim in the ad.
+const DEALERSHIP_ADDRESS = '20 Arthur Porter Drive, Hamilton, 3200, New Zealand';
+
 const OUTPUT_HEADERS = [
   'ID',
   'ID2',
@@ -127,7 +132,7 @@ async function main() {
         row.price,
         row.sale_price,
         buildContextualKeywords(row),
-        '',
+        DEALERSHIP_ADDRESS,
         '',
         buildCustomParameter(row),
         '',
