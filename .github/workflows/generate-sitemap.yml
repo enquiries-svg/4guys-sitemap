@@ -27,7 +27,14 @@ jobs:
       - name: Install headless browser
         run: npx playwright install --with-deps chromium
 
+      # continue-on-error here means a flaky website crawl (e.g. a button that
+      # isn't quite ready to click yet) can't block the remarketing feed step
+      # below - the two are unrelated and should succeed or fail independently.
+      # A crawl failure still fails the overall run (see the final step), so
+      # it stays visible - it just no longer blocks the other feed.
       - name: Generate sitemap.xml
+        id: crawl
+        continue-on-error: true
         run: node crawl-sitemap.js
 
       - name: Generate remarketing-feed.csv
@@ -46,3 +53,9 @@ jobs:
             git commit -m "Update sitemap.xml and remarketing-feed.csv ($(date -u +%Y-%m-%d))"
             git push
           fi
+
+      - name: Fail run if the sitemap crawl failed
+        if: steps.crawl.outcome == 'failure'
+        run: |
+          echo "Sitemap crawl failed - remarketing feed was still refreshed above, but the sitemap crawl itself needs attention."
+          exit 1
