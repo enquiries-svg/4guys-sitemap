@@ -79,6 +79,23 @@ function sanitizeParamValue(value) {
   return value.trim().replace(/\s+/g, '_');
 }
 
+// Google Ads ad policy disallows "non-standard capitalisation" (shouting in ALL CAPS).
+// The AutoPlay feed's titles/descriptions include spec/trim details in full caps
+// (e.g. "HELLCAT WIDEBODY", "TURBO DIESEL") which gets every affected vehicle
+// disapproved. This converts any all-caps run of 2+ letters to Title Case while
+// leaving numbers, model codes with digits (GT350, V8, 6SPD), and short country
+// codes untouched.
+const CAPITALISATION_ALLOWLIST = new Set(['NZ', 'US', 'UK', 'AU']);
+
+function toStandardCapitalisation(value) {
+  if (!value) return value;
+  return value.replace(/[A-Za-z]{2,}/g, (word) => {
+    if (word !== word.toUpperCase()) return word;
+    if (CAPITALISATION_ALLOWLIST.has(word)) return word;
+    return word.charAt(0) + word.slice(1).toLowerCase();
+  });
+}
+
 function buildCustomParameter(row) {
   const parts = [];
   if (row.vehicle_make) parts.push(`{_make}=${sanitizeParamValue(row.vehicle_make)}`);
@@ -123,11 +140,11 @@ async function main() {
       toCsvRow([
         row.id,
         '',
-        row.title,
+        toStandardCapitalisation(row.title),
         row.link,
         row.image_link,
         formatMileage(row.vehicle_mileage),
-        row.description,
+        toStandardCapitalisation(row.description),
         row.vehicle_body_style,
         row.price,
         row.sale_price,
