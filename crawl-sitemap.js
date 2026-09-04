@@ -25,13 +25,13 @@ async function getVisibleIds(page) {
   return page.evaluate(() => {
     const anchors = Array.from(document.querySelectorAll('a')).filter(
       (a) => a.textContent.trim() === 'View Details'
-    );
+      );
     const ids = anchors
-      .map((a) => {
-        const m = a.href.match(/id=(\d+)/);
-        return m ? m[1] : null;
-      })
-      .filter(Boolean);
+    .map((a) => {
+      const m = a.href.match(/id=(\d+)/);
+      return m ? m[1] : null;
+    })
+    .filter(Boolean);
     return [...new Set(ids)];
   });
 }
@@ -56,46 +56,69 @@ async function waitForStableIds(page, { checks = 25, intervalMs = 400, requiredS
   return last;
 }
 
+// Clicks the pagination link for `target` page, retrying a few times.
+// The widget occasionally re-renders its own DOM (e.g. mid-transition) between
+// when we find the link and when the click actually lands, which throws
+// "Element is not attached to the DOM" from a stale element handle. Using a
+// locator (re-resolved fresh on every attempt) plus a few retries absorbs that,
+// which is what caused Run #7 (Sept 3 2026) to fail.
+async function clickPageLink(page, target, { attempts = 3, retryDelayMs = 1000 } = {}) {
+  const selector = `a[href$="#page-${target}"]`;
+  let lastError;
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    try {
+      await page.locator(selector).first().click({ timeout: 15000 });
+      return true;
+    } catch (err) {
+      lastError = err;
+      console.warn(`Click on page ${target} link failed (attempt ${attempt}/${attempts}): ${err.message.split('\n')[0]}`);
+      await page.waitForTimeout(retryDelayMs);
+    }
+  }
+  throw new Error(`Could not click through to page ${target} after ${attempts} attempts: ${lastError && lastError.message}`);
+}
+
 async function crawlAllVehicleIds() {
   const browser = await chromium.launch();
   const page = await browser.newPage();
 
-  await page.goto(LISTING_URL, { waitUntil: 'networkidle' });
+await page.goto(LISTING_URL, { waitUntil: 'networkidle' });
 
-  // The widget remembers the last page you viewed in browser storage and can
-  // reopen there on a fresh load. Clear it and reload so we always start at page 1.
-  await page.evaluate(() => {
-    try { localStorage.clear(); } catch (e) {}
-    try { sessionStorage.clear(); } catch (e) {}
-  });
+// The widget remembers the last page you viewed in browser storage and can
+// reopen there on a fresh load. Clear it and reload so we always start at page 1.
+await page.evaluate(() => {
+  try { localStorage.clear(); } catch (e) {}
+  try { sessionStorage.clear(); } catch (e) {}
+});
   await page.reload({ waitUntil: 'networkidle' });
 
-  const allIds = new Set();
+const allIds = new Set();
   const firstPageIds = await waitForStableIds(page);
   firstPageIds.forEach((id) => allIds.add(id));
 
-  for (let target = 2; target <= MAX_PAGES; target++) {
-    const link = await page.$(`a[href$="#page-${target}"]`);
-    if (!link) break; // no more pages — reached the end of current stock
-    await link.click();
-    const ids = await waitForStableIds(page);
-    ids.forEach((id) => allIds.add(id));
-  }
+for (let target = 2; target <= MAX_PAGES; target++) {
+  const linkCount = await page.locator(`a[href$="#page-${target}"]`).count();
+  if (linkCount === 0) break; // no more pages — reached the end of current stock
 
-  await browser.close();
+  await clickPageLink(page, target);
+  const ids = await waitForStableIds(page);
+  ids.forEach((id) => allIds.add(id));
+}
+
+await browser.close();
   return [...allIds];
 }
 
 function buildSitemapXml(ids) {
   const lastmod = nowIso();
   const urlEntries = ids
-    .map((id) => {
-      const loc = `${DETAIL_BASE}?id=${id}`;
-      return `  <url>\n    <loc>${loc}</loc>\n    <lastmod>${lastmod}</lastmod>\n  </url>`;
-    })
-    .join('\n');
+  .map((id) => {
+    const loc = `${DETAIL_BASE}?id=${id}`;
+    return ` <url>\n <loc>${loc}</loc>\n <lastmod>${lastmod}</lastmod>\n </url>`;
+  })
+  .join('\n');
 
-  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urlEntries}\n</urlset>\n`;
+return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urlEntries}\n</urlset>\n`;
 }
 
 (async () => {
@@ -103,12 +126,12 @@ function buildSitemapXml(ids) {
   const ids = await crawlAllVehicleIds();
   console.log(`Found ${ids.length} live vehicle listings.`);
 
-  if (ids.length === 0) {
-    console.error('No vehicle IDs found — aborting without overwriting sitemap.xml (likely a site issue, not an empty inventory).');
-    process.exit(1);
-  }
+ if (ids.length === 0) {
+   console.error('No vehicle IDs found — aborting without overwriting sitemap.xml (likely a site issue, not an empty inventory).');
+   process.exit(1);
+ }
 
-  const xml = buildSitemapXml(ids);
+ const xml = buildSitemapXml(ids);
   fs.writeFileSync(OUTPUT_FILE, xml);
   console.log(`Wrote ${OUTPUT_FILE} with ${ids.length} URLs.`);
 })();
