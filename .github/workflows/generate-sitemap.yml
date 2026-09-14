@@ -42,15 +42,26 @@ jobs:
           AUTOPLAY_API_KEY: ${{ secrets.AUTOPLAY_API_KEY }}
         run: node build-remarketing-feed.js
 
+      # Pings IndexNow (Bing etc.) with only the URLs that are new, changed,
+      # or have dropped out of either sitemap since the last run - covers both
+      # the Squarespace native sitemap and this repo's vehicle sitemap. Runs
+      # after the sitemap crawl above so it's diffing the freshest data, and
+      # continue-on-error so a hiccup here can't block the commit/push step
+      # below (the sitemap files themselves are what actually matter most).
+      - name: Notify IndexNow of sitemap changes
+        id: indexnow
+        continue-on-error: true
+        run: node submit-indexnow.js
+
       - name: Commit and push generated files if they changed
         run: |
           git config user.name "4guys-sitemap-bot"
           git config user.email "actions@github.com"
-          git add sitemap.xml remarketing-feed.csv
+          git add sitemap.xml remarketing-feed.csv indexnow-snapshot.json
           if git diff --cached --quiet; then
             echo "No changes to commit."
           else
-            git commit -m "Update sitemap.xml and remarketing-feed.csv ($(date -u +%Y-%m-%d))"
+            git commit -m "Update sitemap.xml, remarketing-feed.csv and indexnow-snapshot.json ($(date -u +%Y-%m-%d))"
             git push
           fi
 
@@ -58,4 +69,10 @@ jobs:
         if: steps.crawl.outcome == 'failure'
         run: |
           echo "Sitemap crawl failed - remarketing feed was still refreshed above, but the sitemap crawl itself needs attention."
+          exit 1
+
+      - name: Fail run if IndexNow notification failed
+        if: steps.indexnow.outcome == 'failure'
+        run: |
+          echo "IndexNow submission failed - sitemap and remarketing feed were still refreshed above, but new/changed pages weren't pinged this run."
           exit 1
