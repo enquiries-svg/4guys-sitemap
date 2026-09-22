@@ -42,6 +42,21 @@ jobs:
           AUTOPLAY_API_KEY: ${{ secrets.AUTOPLAY_API_KEY }}
         run: node build-remarketing-feed.js
 
+      # Meta supplementary feed for the "Catalog_Vehicles" catalog - overlays
+      # fuel_type/drivetrain/transmission/custom_label_0 onto AutoPlay's own Facebook
+      # feed (fbookAd.ashx), which is still the primary data source in Meta Commerce
+      # Manager. This step is independent of the Google remarketing feed above other
+      # than sharing the same AutoPlay source - a failure here shouldn't be silent, but
+      # shouldn't block sitemap/Google feed publishing either, hence continue-on-error
+      # + the explicit failure check at the bottom (same pattern as the crawl/IndexNow
+      # steps above).
+      - name: Generate meta-supplementary-feed.csv
+        id: meta_feed
+        continue-on-error: true
+        env:
+          AUTOPLAY_API_KEY: ${{ secrets.AUTOPLAY_API_KEY }}
+        run: node build-meta-supplementary-feed.js
+
       # Pings IndexNow (Bing etc.) with only the URLs that are new, changed,
       # or have dropped out of either sitemap since the last run - covers both
       # the Squarespace native sitemap and this repo's vehicle sitemap. Runs
@@ -57,11 +72,11 @@ jobs:
         run: |
           git config user.name "4guys-sitemap-bot"
           git config user.email "actions@github.com"
-          git add sitemap.xml remarketing-feed.csv indexnow-snapshot.json
+          git add sitemap.xml remarketing-feed.csv meta-supplementary-feed.csv indexnow-snapshot.json
           if git diff --cached --quiet; then
             echo "No changes to commit."
           else
-            git commit -m "Update sitemap.xml, remarketing-feed.csv and indexnow-snapshot.json ($(date -u +%Y-%m-%d))"
+            git commit -m "Update sitemap.xml, remarketing-feed.csv, meta-supplementary-feed.csv and indexnow-snapshot.json ($(date -u +%Y-%m-%d))"
             git push
           fi
 
@@ -69,6 +84,12 @@ jobs:
         if: steps.crawl.outcome == 'failure'
         run: |
           echo "Sitemap crawl failed - remarketing feed was still refreshed above, but the sitemap crawl itself needs attention."
+          exit 1
+
+      - name: Fail run if the Meta supplementary feed failed
+        if: steps.meta_feed.outcome == 'failure'
+        run: |
+          echo "Meta supplementary feed generation failed - sitemap and Google remarketing feed were still refreshed above, but meta-supplementary-feed.csv wasn't updated this run."
           exit 1
 
       - name: Fail run if IndexNow notification failed
