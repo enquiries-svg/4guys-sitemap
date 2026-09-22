@@ -104,8 +104,35 @@ function buildCustomParameter(row) {
   return parts.join(';');
 }
 
+// AutoPlay groups SUVs under the label "RV/SUV". These are ordinary SUVs (that's
+// just how AutoPlay names the category), not motorhomes. The combined label muddies
+// category matching for prospecting, so we normalise it to a clean "SUV".
+function normalizeBodyStyle(bodyStyle) {
+  if (!bodyStyle) return bodyStyle;
+  return bodyStyle.trim() === 'RV/SUV' ? 'SUV' : bodyStyle;
+}
+
+// Fuel type isn't a discrete field in the AutoPlay feed, but it's reliably stated in
+// the description for diesels, hybrids and EVs. Everything else on a used-car lot is
+// petrol, so the remainder defaults to Petrol. This adds a matching signal for
+// prospecting / optimised targeting (e.g. a diesel-ute shopper -> our diesel utes).
+function extractFuelType(row) {
+  const d = (row.description || '').toLowerCase();
+  if (/plug-?in hybrid|phev/.test(d)) return 'Plug-in Hybrid';
+  if (/hybrid/.test(d)) return 'Hybrid';
+  if (/\belectric\b|\bev\b|\bbev\b/.test(d)) return 'Electric';
+  if (/diesel|\btdi\b|\bcrd\b|\bhdi\b|\bdci\b|\btdci\b|bluetec|d-4d|d4d/.test(d)) return 'Diesel';
+  return 'Petrol';
+}
+
 function buildContextualKeywords(row) {
-  return [row.vehicle_make, row.vehicle_model, row.vehicle_year, row.vehicle_body_style]
+  return [
+    row.vehicle_make,
+    row.vehicle_model,
+    row.vehicle_year,
+    normalizeBodyStyle(row.vehicle_body_style),
+    extractFuelType(row),
+  ]
     .filter(Boolean)
     .join('; ');
 }
@@ -145,7 +172,7 @@ async function main() {
         row.image_link,
         formatMileage(row.vehicle_mileage),
         toStandardCapitalisation(row.description),
-        row.vehicle_body_style,
+        normalizeBodyStyle(row.vehicle_body_style),
         row.price,
         row.sale_price,
         buildContextualKeywords(row),
