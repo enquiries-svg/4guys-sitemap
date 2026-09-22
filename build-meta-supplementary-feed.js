@@ -5,11 +5,12 @@
 // fields AutoPlay's Facebook export leaves blank (fuel_type, drivetrain, transmission),
 // plus a custom_label_0 price-bracket segment for building prospecting product sets.
 //
-// Meta merges a supplementary feed onto the primary feed by matching the "id" column
-// here to the primary feed's item id. Confirmed by cross-checking: AutoPlay's Google
-// feed row.id "29856" (2019 Dodge Challenger Hellcat) is the exact same value shown as
-// "Vehicle ID: 29856" on that item in Commerce Manager - so we key off row.id from the
-// same AutoPlay source the Google remarketing feed already uses.
+// Meta merges a supplementary feed onto the primary feed by matching the "vehicle_id"
+// column here to the primary feed's Vehicle ID. Confirmed by cross-checking: AutoPlay's
+// Google feed row.id "29856" (2019 Dodge Challenger Hellcat) is the exact same value
+// shown as "Vehicle ID: 29856" on that item in Commerce Manager - so we key off row.id
+// from the same AutoPlay source the Google remarketing feed already uses, just output
+// under Meta's own "vehicle_id" field name rather than the generic "id".
 //
 // The AutoPlay API key is never hardcoded here - read from AUTOPLAY_API_KEY, injected
 // by GitHub Actions from a repository secret at run time.
@@ -23,8 +24,14 @@ const AUTOPLAY_YARDS = '27';
 const OUTPUT_FILE = 'meta-supplementary-feed.csv';
 
 // Meta's supplementary feed field names (must match the catalog's vertical schema
-// field names exactly - see Meta's automotive catalog reference).
-const OUTPUT_HEADERS = ['id', 'fuel_type', 'drivetrain', 'transmission', 'custom_label_0'];
+// field names exactly - see Meta's automotive catalog reference). Confirmed via the
+// live Catalog_Vehicles item detail view in Commerce Manager: the vehicle's merge key
+// is literally labelled "Vehicle ID" there, backed by the field name "vehicle_id" -
+// NOT the generic "id" used by Google's feed schema. Using "id" here caused Meta to
+// treat every row as a brand-new, incomplete product (requiring state_of_vehicle,
+// body_style, image, etc.) instead of merging onto the existing 266 vehicles - all
+// 266 rows failed to upload until this was corrected to "vehicle_id".
+const OUTPUT_HEADERS = ['vehicle_id', 'fuel_type', 'drivetrain', 'transmission', 'custom_label_0'];
 
 function csvField(value) {
   const s = value == null ? '' : String(value);
