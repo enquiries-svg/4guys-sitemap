@@ -1,4 +1,4 @@
-id,fuel_type,drivetrain,transmission,custom_label_0
+vehicle_id,fuel_type,drivetrain,transmission,custom_label_0
 29856,Petrol,,Automatic,$80k+
 30040,Diesel,4WD,Automatic,$20k-$40k
 30264,Diesel,4WD,Automatic,$80k+
