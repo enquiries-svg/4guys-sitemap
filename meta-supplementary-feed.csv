@@ -1,0 +1,267 @@
+id,fuel_type,drivetrain,transmission,custom_label_0
+29856,Petrol,,Automatic,$80k+
+30040,Diesel,4WD,Automatic,$20k-$40k
+30264,Diesel,4WD,Automatic,$80k+
+31133,Petrol,,Manual,$40k-$80k
+31362,Petrol,4WD,Automatic,$20k-$40k
+31487,Petrol,,Automatic,$20k-$40k
+31654,Petrol,,Automatic,$80k+
+31907,Petrol,,Automatic,Under $20k
+32021,Hybrid,4WD,Automatic,$20k-$40k
+32024,Petrol,,Automatic,$80k+
+32036,Petrol,,Automatic,$80k+
+32062,Diesel,4WD,Automatic,$20k-$40k
+32075,Diesel,4WD,Automatic,$40k-$80k
+32105,Petrol,,Automatic,Under $20k
+32128,Petrol,,Automatic,$20k-$40k
+32210,Petrol,,Automatic,$20k-$40k
+32265,Petrol,4WD,Automatic,$20k-$40k
+32270,Petrol,4WD,Automatic,$20k-$40k
+32274,Petrol,,Automatic,Under $20k
+32287,Petrol,,Automatic,$20k-$40k
+32293,Petrol,,Automatic,$20k-$40k
+32298,Diesel,AWD,Automatic,Under $20k
+32310,Petrol,,Automatic,Under $20k
+32322,Petrol,,Automatic,Under $20k
+32323,Petrol,,Automatic,Under $20k
+32337,Petrol,,Automatic,$20k-$40k
+32339,Hybrid,4WD,Automatic,$40k-$80k
+32361,Petrol,,Automatic,$20k-$40k
+32369,Petrol,,Automatic,Under $20k
+32414,Petrol,,Automatic,$20k-$40k
+32436,Petrol,,Automatic,$20k-$40k
+32457,Diesel,4WD,Automatic,Under $20k
+32470,Petrol,,Automatic,Under $20k
+32472,Petrol,4WD,Automatic,$20k-$40k
+32474,Petrol,,Automatic,$20k-$40k
+32434,Hybrid,4WD,Automatic,$20k-$40k
+32496,Petrol,,Automatic,$20k-$40k
+32503,Hybrid,4WD,Automatic,$40k-$80k
+32508,Petrol,,Automatic,$80k+
+32515,Petrol,,Automatic,$80k+
+32345,Diesel,4WD,Automatic,$80k+
+32526,Petrol,,Automatic,Under $20k
+32588,Petrol,,Automatic,$20k-$40k
+32637,Petrol,,Automatic,Under $20k
+32647,Petrol,,Automatic,$20k-$40k
+32684,Petrol,,Automatic,Under $20k
+32746,Petrol,,Automatic,$20k-$40k
+32751,Diesel,4WD,Automatic,$40k-$80k
+32789,Petrol,,Automatic,Under $20k
+32805,Petrol,,Manual,Under $20k
+32820,Petrol,,Automatic,$20k-$40k
+32842,Diesel,4WD,Automatic,$40k-$80k
+32912,Petrol,4WD,Automatic,Under $20k
+32934,Petrol,,Automatic,$20k-$40k
+32965,Petrol,,Automatic,Under $20k
+32984,Diesel,AWD,Automatic,Under $20k
+33025,Petrol,,Manual,$80k+
+33067,Petrol,,Automatic,$80k+
+33084,Petrol,,Automatic,$20k-$40k
+33085,Diesel,,Automatic,$20k-$40k
+33090,Petrol,,Automatic,$20k-$40k
+33100,Petrol,,Automatic,$20k-$40k
+33119,Hybrid,4WD,Automatic,$80k+
+33137,Petrol,,Automatic,$40k-$80k
+33142,Petrol,,Automatic,Under $20k
+33147,Petrol,,Manual,$80k+
+33145,Petrol,,Automatic,$40k-$80k
+33152,Petrol,,Automatic,Under $20k
+33171,Diesel,,Automatic,$40k-$80k
+33181,Petrol,,Automatic,$40k-$80k
+33182,Diesel,4WD,Automatic,$20k-$40k
+33186,Petrol,,Automatic,$80k+
+33198,Diesel,4WD,Automatic,$20k-$40k
+32619,Petrol,,Automatic,Under $20k
+33214,Petrol,,Automatic,$20k-$40k
+33222,Petrol,4WD,Automatic,$20k-$40k
+33223,Petrol,,Automatic,$20k-$40k
+33224,Petrol,,Automatic,$20k-$40k
+33238,Petrol,,Automatic,$20k-$40k
+33245,Hybrid,4WD,Automatic,$40k-$80k
+33256,Petrol,4WD,Automatic,$20k-$40k
+33259,Hybrid,4WD,Automatic,$20k-$40k
+33273,Diesel,4WD,Automatic,$20k-$40k
+33285,Petrol,,Automatic,$20k-$40k
+33298,Petrol,,Automatic,$20k-$40k
+33301,Diesel,4WD,Automatic,Under $20k
+33311,Diesel,,Automatic,$20k-$40k
+33308,Petrol,,Automatic,$20k-$40k
+33313,Petrol,4WD,Automatic,$20k-$40k
+33316,Petrol,,Automatic,$20k-$40k
+33319,Hybrid,,Automatic,$20k-$40k
+33323,Petrol,4WD,Automatic,$40k-$80k
+33327,Diesel,4WD,Automatic,$40k-$80k
+33333,Diesel,4WD,Automatic,$40k-$80k
+33343,Diesel,4WD,Automatic,$40k-$80k
+33349,Diesel,,Automatic,$40k-$80k
+33353,Diesel,,Automatic,$20k-$40k
+33354,Petrol,,Automatic,$20k-$40k
+33360,Diesel,,Automatic,$80k+
+33367,Petrol,,Automatic,$20k-$40k
+33368,Diesel,,Automatic,$40k-$80k
+33377,Diesel,,Automatic,$20k-$40k
+33382,Hybrid,,Automatic,$20k-$40k
+33383,Hybrid,,Automatic,$20k-$40k
+33386,Hybrid,,Automatic,$20k-$40k
+33374,Diesel,4WD,Automatic,Under $20k
+33381,Petrol,,Automatic,$80k+
+33375,Petrol,,Automatic,$80k+
+33391,Petrol,4WD,Automatic,$20k-$40k
+33392,Petrol,4WD,Automatic,$40k-$80k
+33379,Petrol,,Automatic,$40k-$80k
+33396,Petrol,,Automatic,$40k-$80k
+33395,Petrol,,Automatic,$40k-$80k
+33400,Diesel,,Automatic,$40k-$80k
+33401,Hybrid,,Automatic,$20k-$40k
+33411,Hybrid,,Automatic,$40k-$80k
+33412,Hybrid,4WD,Automatic,$40k-$80k
+33413,Diesel,4WD,Automatic,$80k+
+33417,Petrol,,Automatic,$20k-$40k
+33419,Petrol,,Automatic,$20k-$40k
+31937,Petrol,,Automatic,Under $20k
+33433,Hybrid,,Automatic,$20k-$40k
+33434,Petrol,4WD,Automatic,$20k-$40k
+33435,Hybrid,,Automatic,$20k-$40k
+33440,Hybrid,,Automatic,$20k-$40k
+33398,Petrol,,Automatic,$20k-$40k
+33427,Petrol,,Automatic,Under $20k
+33451,Hybrid,,Automatic,$20k-$40k
+33454,Petrol,AWD,Automatic,Under $20k
+33455,Hybrid,,Automatic,$20k-$40k
+33456,Hybrid,,Automatic,$20k-$40k
+33457,Hybrid,,Automatic,$20k-$40k
+33458,Hybrid,,Automatic,$20k-$40k
+33461,Petrol,,Automatic,Under $20k
+33467,Petrol,,Automatic,$20k-$40k
+33468,Petrol,,Automatic,$20k-$40k
+33471,Petrol,4WD,Automatic,$80k+
+33473,Petrol,,Automatic,$40k-$80k
+33397,Petrol,4WD,Automatic,Under $20k
+33476,Diesel,,Automatic,$20k-$40k
+33482,Diesel,,Automatic,$40k-$80k
+33483,Petrol,4WD,Automatic,$20k-$40k
+33489,Diesel,4WD,Automatic,$20k-$40k
+33494,Hybrid,,Automatic,$20k-$40k
+33500,Petrol,,Automatic,Under $20k
+33501,Petrol,,Automatic,$40k-$80k
+33513,Petrol,,Automatic,$20k-$40k
+33517,Petrol,4WD,Automatic,$40k-$80k
+33512,Petrol,,Automatic,Under $20k
+33524,Petrol,4WD,Automatic,$40k-$80k
+33525,Petrol,4WD,Automatic,$40k-$80k
+33536,Petrol,4WD,Automatic,$20k-$40k
+33537,Petrol,,Automatic,Under $20k
+33558,Diesel,4WD,Automatic,$20k-$40k
+33559,Diesel,4WD,Manual,$80k+
+33575,Petrol,,Automatic,$20k-$40k
+33579,Petrol,,Automatic,$20k-$40k
+33582,Petrol,4WD,Automatic,$20k-$40k
+33583,Petrol,4WD,Automatic,$20k-$40k
+33587,Diesel,,Automatic,$40k-$80k
+33599,Diesel,,Automatic,$20k-$40k
+33596,Petrol,,Automatic,Under $20k
+33600,Diesel,4WD,Automatic,$20k-$40k
+33592,Petrol,,Automatic,$20k-$40k
+33613,Petrol,,Automatic,$80k+
+33614,Petrol,,Automatic,$20k-$40k
+33616,Diesel,4WD,Automatic,$40k-$80k
+33624,Petrol,,Automatic,$80k+
+33627,Petrol,,Automatic,$80k+
+33630,Diesel,,Automatic,$20k-$40k
+33634,Petrol,,Automatic,$80k+
+33635,Petrol,,Automatic,Under $20k
+33636,Diesel,,Automatic,$20k-$40k
+33639,Petrol,,Automatic,$40k-$80k
+33640,Petrol,,Automatic,$20k-$40k
+33642,Petrol,,Automatic,$20k-$40k
+33657,Hybrid,,Automatic,Under $20k
+33664,Diesel,,Automatic,$20k-$40k
+33666,Diesel,,Automatic,$20k-$40k
+33669,Diesel,4WD,Automatic,$40k-$80k
+33672,Diesel,,Automatic,$20k-$40k
+33665,Diesel,4WD,Automatic,$20k-$40k
+33656,Petrol,,Automatic,$20k-$40k
+33676,Petrol,,Automatic,$40k-$80k
+33678,Petrol,,Automatic,$40k-$80k
+33699,Petrol,,Automatic,$40k-$80k
+33691,Petrol,AWD,Automatic,Under $20k
+33703,Petrol,4WD,Automatic,$40k-$80k
+33711,Petrol,,Automatic,$20k-$40k
+33716,Petrol,,Automatic,$20k-$40k
+33719,Diesel,4WD,Automatic,$40k-$80k
+33723,Diesel,4WD,Automatic,$40k-$80k
+33725,Diesel,,Automatic,$20k-$40k
+33726,Diesel,,Automatic,$20k-$40k
+33632,Petrol,,Automatic,Under $20k
+33729,Petrol,,Automatic,$20k-$40k
+33731,Petrol,,Automatic,$20k-$40k
+33734,Hybrid,,Automatic,$20k-$40k
+33737,Petrol,AWD,Automatic,$20k-$40k
+33738,Diesel,,Automatic,$20k-$40k
+33745,Diesel,,Manual,$20k-$40k
+33747,Diesel,AWD,Automatic,Under $20k
+33742,Petrol,,Manual,Under $20k
+33750,Petrol,4WD,Automatic,$20k-$40k
+33754,Petrol,,Automatic,$20k-$40k
+33755,Petrol,,Automatic,Under $20k
+33757,Petrol,,Manual,Under $20k
+33759,Petrol,,Automatic,$80k+
+33756,Diesel,,Automatic,Under $20k
+33761,Petrol,4WD,Automatic,Under $20k
+33762,Diesel,4WD,Automatic,$20k-$40k
+33767,Hybrid,4WD,Automatic,$40k-$80k
+33772,Diesel,4WD,Automatic,$20k-$40k
+33773,Petrol,,Automatic,$20k-$40k
+33769,Petrol,4WD,Automatic,Under $20k
+33779,Petrol,,Automatic,Under $20k
+33780,Petrol,,Automatic,$20k-$40k
+33775,Petrol,,Automatic,Under $20k
+33785,Petrol,4WD,Automatic,Under $20k
+33786,Diesel,,Automatic,$20k-$40k
+33788,Petrol,,Automatic,Under $20k
+33789,Petrol,4WD,Automatic,Under $20k
+33790,Diesel,4WD,Automatic,$20k-$40k
+33792,Hybrid,,Automatic,Under $20k
+33795,Petrol,,Automatic,Under $20k
+33796,Diesel,,Automatic,$20k-$40k
+33797,Diesel,,Automatic,$20k-$40k
+33798,Diesel,,Automatic,$20k-$40k
+33799,Petrol,AWD,Automatic,$20k-$40k
+33800,Petrol,4WD,Automatic,$20k-$40k
+33801,Petrol,4WD,Automatic,$20k-$40k
+33802,Petrol,4WD,Automatic,$20k-$40k
+33805,Petrol,,Automatic,Under $20k
+33809,Petrol,,Automatic,$20k-$40k
+33811,Petrol,,Automatic,$80k+
+33791,Petrol,,Automatic,$20k-$40k
+33810,Hybrid,,Automatic,$20k-$40k
+33758,Petrol,,Automatic,Under $20k
+33807,Petrol,4WD,Automatic,$20k-$40k
+33812,Petrol,,Automatic,$20k-$40k
+33813,Petrol,,Automatic,$40k-$80k
+33563,Diesel,,Automatic,$40k-$80k
+33815,Petrol,4WD,Automatic,$20k-$40k
+33817,Diesel,4WD,Manual,$20k-$40k
+33819,Petrol,,Automatic,Under $20k
+33823,Petrol,4WD,Automatic,$20k-$40k
+33825,Petrol,,Automatic,$20k-$40k
+33826,Petrol,4WD,Automatic,$80k+
+33832,Petrol,,Automatic,$80k+
+33818,Petrol,4WD,Automatic,Under $20k
+33827,Diesel,,Automatic,$20k-$40k
+33828,Petrol,4WD,Automatic,$40k-$80k
+33829,Petrol,4WD,Automatic,$20k-$40k
+33831,Petrol,,Automatic,$20k-$40k
+33833,Petrol,4WD,Automatic,$20k-$40k
+33834,Diesel,4WD,Automatic,$40k-$80k
+33836,Petrol,,Automatic,Under $20k
+33839,Petrol,,Automatic,$80k+
+33842,Petrol,,Automatic,$20k-$40k
+33846,Diesel,4WD,Automatic,$20k-$40k
+33806,Petrol,,Automatic,Under $20k
+33840,Petrol,,Automatic,Under $20k
+33841,Hybrid,,Automatic,$20k-$40k
+33851,Petrol,,Automatic,$80k+
+33844,Petrol,4WD,Automatic,$20k-$40k
+33853,Petrol,,Automatic,Under $20k
