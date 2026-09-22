@@ -42,20 +42,23 @@ jobs:
           AUTOPLAY_API_KEY: ${{ secrets.AUTOPLAY_API_KEY }}
         run: node build-remarketing-feed.js
 
-      # Meta supplementary feed for the "Catalog_Vehicles" catalog - overlays
-      # fuel_type/drivetrain/transmission/custom_label_0 onto AutoPlay's own Facebook
-      # feed (fbookAd.ashx), which is still the primary data source in Meta Commerce
-      # Manager. This step is independent of the Google remarketing feed above other
-      # than sharing the same AutoPlay source - a failure here shouldn't be silent, but
-      # shouldn't block sitemap/Google feed publishing either, hence continue-on-error
-      # + the explicit failure check at the bottom (same pattern as the crawl/IndexNow
-      # steps above).
-      - name: Generate meta-supplementary-feed.csv
+      # Full replacement feed for the "Catalog_Vehicles" catalog's primary data source
+      # in Meta Commerce Manager. Meta's self-serve UI doesn't support true
+      # supplementary-feed merging for the Vehicles vertical (every extra feed is
+      # validated as a brand-new, complete product, not merged onto existing items by
+      # vehicle_id - confirmed by testing), so instead of overlaying a few fields onto
+      # AutoPlay's own Facebook feed (fbookAd.ashx), this mirrors that feed's 22 columns
+      # byte-for-byte (same data.autoplay.co.nz source Commerce Manager already reads,
+      # no API key required) and adds only what's missing: fuel_type, transmission, and
+      # a custom_label_0 price-bracket segment. Once this is live, Commerce Manager's
+      # primary feed URL gets pointed at this file instead of AutoPlay's feed directly.
+      # continue-on-error + the explicit failure check at the bottom (same pattern as
+      # the crawl/IndexNow steps above) means a hiccup here can't block sitemap/Google
+      # feed publishing.
+      - name: Generate meta-vehicle-feed.csv
         id: meta_feed
         continue-on-error: true
-        env:
-          AUTOPLAY_API_KEY: ${{ secrets.AUTOPLAY_API_KEY }}
-        run: node build-meta-supplementary-feed.js
+        run: node build-meta-vehicle-feed.js
 
       # Pings IndexNow (Bing etc.) with only the URLs that are new, changed,
       # or have dropped out of either sitemap since the last run - covers both
@@ -72,11 +75,11 @@ jobs:
         run: |
           git config user.name "4guys-sitemap-bot"
           git config user.email "actions@github.com"
-          git add sitemap.xml remarketing-feed.csv meta-supplementary-feed.csv indexnow-snapshot.json
+          git add sitemap.xml remarketing-feed.csv meta-vehicle-feed.csv indexnow-snapshot.json
           if git diff --cached --quiet; then
             echo "No changes to commit."
           else
-            git commit -m "Update sitemap.xml, remarketing-feed.csv, meta-supplementary-feed.csv and indexnow-snapshot.json ($(date -u +%Y-%m-%d))"
+            git commit -m "Update sitemap.xml, remarketing-feed.csv, meta-vehicle-feed.csv and indexnow-snapshot.json ($(date -u +%Y-%m-%d))"
             git push
           fi
 
@@ -86,10 +89,10 @@ jobs:
           echo "Sitemap crawl failed - remarketing feed was still refreshed above, but the sitemap crawl itself needs attention."
           exit 1
 
-      - name: Fail run if the Meta supplementary feed failed
+      - name: Fail run if the Meta vehicle feed failed
         if: steps.meta_feed.outcome == 'failure'
         run: |
-          echo "Meta supplementary feed generation failed - sitemap and Google remarketing feed were still refreshed above, but meta-supplementary-feed.csv wasn't updated this run."
+          echo "Meta vehicle feed generation failed - sitemap and Google remarketing feed were still refreshed above, but meta-vehicle-feed.csv wasn't updated this run. Commerce Manager's primary feed is unaffected until its URL is switched over."
           exit 1
 
       - name: Fail run if IndexNow notification failed
