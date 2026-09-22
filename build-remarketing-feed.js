@@ -125,6 +125,16 @@ function extractFuelType(row) {
   return 'Petrol';
 }
 
+// Drivetrain is another buyer-intent signal that's reliably stated in the description
+// (4WD/4x4 utes and SUVs, AWD cars). We only tag it when clearly present - 2WD is
+// rarely stated, so those are left blank rather than guessed.
+function extractDrivetrain(row) {
+  const d = (row.description || '').toLowerCase();
+  if (/\b4wd\b|\b4x4\b|4matic|quattro|xdrive|4motion/.test(d)) return '4WD';
+  if (/\bawd\b|all-?wheel/.test(d)) return 'AWD';
+  return '';
+}
+
 function buildContextualKeywords(row) {
   return [
     row.vehicle_make,
@@ -132,6 +142,7 @@ function buildContextualKeywords(row) {
     row.vehicle_year,
     normalizeBodyStyle(row.vehicle_body_style),
     extractFuelType(row),
+    extractDrivetrain(row),
   ]
     .filter(Boolean)
     .join('; ');
