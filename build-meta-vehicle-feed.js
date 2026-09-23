@@ -109,6 +109,47 @@ function parseCsv(text) {
     });
 }
 
+// AutoPlay's address field sometimes has a literal "<br/>" (or other HTML) baked into
+// address.addr1 (e.g. "20 Arthur Porter Drive<br/>"), which then shows up verbatim in
+// Commerce Manager. Strip any HTML tags and tidy up the leftover whitespace/commas.
+function stripHtml(value) {
+  if (!value) return value;
+  return value
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .replace(/\s+,/g, ',')
+    .trim();
+}
+
+// AutoPlay's free-text fields (title, description) and a few enum-like passthrough
+// fields (body style, state of vehicle, exterior colour) come through in ALL CAPS
+// ("HELLCAT WIDEBODY AUTO ... SUPERCHARGED COUPE", "SEDAN", "USED"). Meta's own
+// Vehicle-catalog enum fields (transmission, condition, etc.) always render as their
+// fixed enum name in Commerce Manager regardless of what case we send - that's a
+// display convention on Meta's side, not something a feed can change - but title,
+// description and these passthrough fields are genuinely reformattable.
+//
+// Same approach as build-remarketing-feed.js's toStandardCapitalisation (kept in sync
+// manually): convert any all-caps run of 2+ letters to Title Case, except a short
+// allowlist of trim/engine/spec codes and country codes that should stay uppercase.
+// Digits act as natural word boundaries, so unit suffixes like "6.2L" and "717hp"
+// aren't touched, and "V8" is too short to match at all. Already mixed-case or
+// lowercase text passes through untouched.
+const CAPITALISATION_ALLOWLIST = new Set([
+  'NZ', 'US', 'UK', 'AU',
+  'AWD', 'FWD', 'RWD', 'WD', 'GST', 'ABS', 'ESP', 'DSG', 'CVT', 'TDI', 'GTI', 'GT', 'RS', 'SS', 'ST', 'SRT',
+  'SUV', 'UTE', 'RV', 'LED', 'GPS', 'USB',
+]);
+
+function smartTitleCase(value) {
+  if (!value) return value;
+  return value.replace(/[A-Za-z]{2,}/g, (word) => {
+    if (word !== word.toUpperCase()) return word;
+    if (CAPITALISATION_ALLOWLIST.has(word)) return word;
+    return word.charAt(0) + word.slice(1).toLowerCase();
+  });
+}
+
 // Same logic as build-remarketing-feed.js's extractFuelType.
 function extractFuelType(row) {
   const d = (row.description || '').toLowerCase();
@@ -142,6 +183,17 @@ function buildPriceBracketLabel(row) {
   return '$80k+';
 }
 
+// AutoPlay's Facebook feed requests images at 500x375 (image.ashx?...&w=500&h=375),
+// but the same image.ashx endpoint serves the exact same photo larger - AutoPlay's
+// Google feed (build-remarketing-feed.js) already requests it at 800x600 for Google
+// Merchant Center, which has been running in production there without issue. Same
+// endpoint, same image, same 4:3 aspect ratio - just bigger - so this swaps in that
+// same known-good size for Meta too rather than introducing an unproven resolution.
+function upsizeImageUrl(url) {
+  if (!url) return url;
+  return url.replace(/([?&])w=\d+/, '$1w=800').replace(/([?&])h=\d+/, '$1h=600');
+}
+
 async function main() {
   console.log('Fetching AutoPlay Facebook vehicle feed...');
   const res = await fetch(SOURCE_URL);
@@ -161,9 +213,21 @@ async function main() {
   const sourceHeaders = Object.keys(rows[0]);
   const outputHeaders = [...sourceHeaders, ...EXTRA_HEADERS];
 
+  // Fields that get the HTML-stripping and/or title-case cleanup. Everything else
+  // (IDs, numeric fields, URLs, lat/long, make/model which AutoPlay already sends
+  // properly cased) passes through completely unchanged.
+  const HTML_STRIP_FIELDS = new Set(['address.addr1']);
+  const TITLE_CASE_FIELDS = new Set(['title', 'description', 'body_style', 'state_of_vehicle', 'exterior_color']);
+
   const outLines = [toCsvRow(outputHeaders)];
   for (const row of rows) {
-    const values = sourceHeaders.map((h) => row[h]);
+    const values = sourceHeaders.map((h) => {
+      let v = row[h];
+      if (h === 'image[0].url') v = upsizeImageUrl(v);
+      if (HTML_STRIP_FIELDS.has(h)) v = stripHtml(v);
+      if (TITLE_CASE_FIELDS.has(h)) v = smartTitleCase(v);
+      return v;
+    });
     values.push(extractFuelType(row), extractTransmission(row), buildPriceBracketLabel(row));
     outLines.push(toCsvRow(values));
   }
