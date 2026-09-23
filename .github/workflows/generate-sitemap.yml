@@ -60,6 +60,19 @@ jobs:
         continue-on-error: true
         run: node build-meta-vehicle-feed.js
 
+      # Feed for TikTok's dedicated "Auto - Inventory" catalog (Automotive Ads), a
+      # richer field set (make/model/year/mileage/body style/drivetrain/dealer
+      # location) than the generic e-commerce fields TikTok's existing Google-Merchant-
+      # Center-based catalog import produces. Separate catalog from the existing
+      # TikTok "Vehicles" (E-commerce) catalog - this doesn't touch or replace it.
+      # continue-on-error + explicit failure check below, same pattern as the other
+      # optional feed steps, so a hiccup here can't block sitemap/Google/Meta feed
+      # publishing.
+      - name: Generate tiktok-vehicle-feed.csv
+        id: tiktok_feed
+        continue-on-error: true
+        run: node build-tiktok-vehicle-feed.js
+
       # Pings IndexNow (Bing etc.) with only the URLs that are new, changed,
       # or have dropped out of either sitemap since the last run - covers both
       # the Squarespace native sitemap and this repo's vehicle sitemap. Runs
@@ -75,11 +88,11 @@ jobs:
         run: |
           git config user.name "4guys-sitemap-bot"
           git config user.email "actions@github.com"
-          git add sitemap.xml remarketing-feed.csv meta-vehicle-feed.csv indexnow-snapshot.json
+          git add sitemap.xml remarketing-feed.csv meta-vehicle-feed.csv tiktok-vehicle-feed.csv indexnow-snapshot.json
           if git diff --cached --quiet; then
             echo "No changes to commit."
           else
-            git commit -m "Update sitemap.xml, remarketing-feed.csv, meta-vehicle-feed.csv and indexnow-snapshot.json ($(date -u +%Y-%m-%d))"
+            git commit -m "Update sitemap.xml, remarketing-feed.csv, meta-vehicle-feed.csv, tiktok-vehicle-feed.csv and indexnow-snapshot.json ($(date -u +%Y-%m-%d))"
             git push
           fi
 
@@ -93,6 +106,12 @@ jobs:
         if: steps.meta_feed.outcome == 'failure'
         run: |
           echo "Meta vehicle feed generation failed - sitemap and Google remarketing feed were still refreshed above, but meta-vehicle-feed.csv wasn't updated this run. Commerce Manager's primary feed is unaffected until its URL is switched over."
+          exit 1
+
+      - name: Fail run if the TikTok vehicle feed failed
+        if: steps.tiktok_feed.outcome == 'failure'
+        run: |
+          echo "TikTok vehicle feed generation failed - other feeds were still refreshed above, but tiktok-vehicle-feed.csv wasn't updated this run. TikTok's Automotive Ads catalog is unaffected until its product source is pointed at this file."
           exit 1
 
       - name: Fail run if IndexNow notification failed
