@@ -83,6 +83,7 @@ jobs:
         id: search_index
         if: steps.crawl.outcome == 'success'
         continue-on-error: true
+        timeout-minutes: 20
         run: node build-search-index.js
 
       # Pings IndexNow (Bing etc.) with only the URLs that are new, changed,
