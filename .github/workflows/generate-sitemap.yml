@@ -73,6 +73,18 @@ jobs:
         continue-on-error: true
         run: node build-tiktok-vehicle-feed.js
 
+      # Data file behind the homepage vehicle search widget. Opens every vehicle page
+      # listed in sitemap.xml (so it must run after the crawl above) to read the full
+      # AutoPlay features list (seats, Isofix, towbar, CarPlay etc.), which none of the
+      # ad feeds carry. Skipped if the crawl failed, so it never runs on a stale or
+      # missing sitemap; refuses to overwrite vehicles.json if under 80% of pages read.
+      # continue-on-error + explicit failure check below, same pattern as other steps.
+      - name: Generate vehicles.json (homepage search)
+        id: search_index
+        if: steps.crawl.outcome == 'success'
+        continue-on-error: true
+        run: node build-search-index.js
+
       # Pings IndexNow (Bing etc.) with only the URLs that are new, changed,
       # or have dropped out of either sitemap since the last run - covers both
       # the Squarespace native sitemap and this repo's vehicle sitemap. Runs
@@ -88,11 +100,11 @@ jobs:
         run: |
           git config user.name "4guys-sitemap-bot"
           git config user.email "actions@github.com"
-          git add sitemap.xml remarketing-feed.csv meta-vehicle-feed.csv tiktok-vehicle-feed.csv indexnow-snapshot.json
+          git add sitemap.xml remarketing-feed.csv meta-vehicle-feed.csv tiktok-vehicle-feed.csv indexnow-snapshot.json vehicles.json
           if git diff --cached --quiet; then
             echo "No changes to commit."
           else
-            git commit -m "Update sitemap.xml, remarketing-feed.csv, meta-vehicle-feed.csv, tiktok-vehicle-feed.csv and indexnow-snapshot.json ($(date -u +%Y-%m-%d))"
+            git commit -m "Update sitemap.xml, remarketing-feed.csv, meta-vehicle-feed.csv, tiktok-vehicle-feed.csv, vehicles.json and indexnow-snapshot.json ($(date -u +%Y-%m-%d))"
             git push
           fi
 
@@ -112,6 +124,12 @@ jobs:
         if: steps.tiktok_feed.outcome == 'failure'
         run: |
           echo "TikTok vehicle feed generation failed - other feeds were still refreshed above, but tiktok-vehicle-feed.csv wasn't updated this run. TikTok's Automotive Ads catalog is unaffected until its product source is pointed at this file."
+          exit 1
+
+      - name: Fail run if the vehicle search index failed
+        if: steps.search_index.outcome == 'failure'
+        run: |
+          echo "vehicles.json generation failed - other feeds were still refreshed above, but the homepage search is showing the previous day's stock."
           exit 1
 
       - name: Fail run if IndexNow notification failed
