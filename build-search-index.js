@@ -261,15 +261,40 @@ async function main() {
   console.log(`Read ${out.length}/${ids.length} vehicles in ${Math.round((Date.now() - started) / 1000)}s. ${failed.length} failed${skipped ? `, ${skipped} skipped (time budget)` : ''}.`);
   failed.forEach(([id, why]) => console.warn(`  ${id}: ${why}`));
 
-  // Don't publish a half-empty index over a good one if the site was having a bad night.
+  // Health checks. Anything below makes the step (and so the whole run) fail, which is
+  // what triggers GitHub's failed-run email. "::error::" lines show up in that email and
+  // at the top of the run page, so the reason is visible without opening the log.
+  const alert = (msg) => console.log(`::error title=Vehicle search::${msg}`);
+  const pageErrors = failed.filter(([, why]) => why !== 'not in AutoPlay feed').length;
+  const median = (a) => { const x = [...a].sort((p, q) => p - q); return x.length ? x[x.length >> 1] : 0; };
+  const medianFeatures = median(out.map((v) => v.features_listed));
+  const seatsKnown = out.length ? out.filter((v) => v.seats != null).length / out.length : 0;
+
+  // 1. Too few vehicles read: the site was down or blocked us. Keep yesterday's file.
   if (out.length < ids.length * 0.8) {
-    console.error('Fewer than 80% of vehicles read - keeping the previous vehicles.json.');
+    alert(`Only ${out.length} of ${ids.length} vehicles could be read. Kept the previous vehicles.json, so the homepage search is showing older stock.`);
+    process.exit(1);
+  }
+  // 2. Pages loaded but the details came back empty: AutoPlay has probably changed the
+  //    vehicle page layout. Publishing this would break search results, so keep yesterday's.
+  if (medianFeatures < 15 || seatsKnown < 0.6) {
+    alert(`Vehicle pages loaded but the details look wrong (typical features per car: ${medianFeatures}, seat count found on ${Math.round(seatsKnown * 100)}%). AutoPlay may have changed their page layout. Kept the previous vehicles.json.`);
     process.exit(1);
   }
 
   out.sort((a, b) => a.price - b.price);
   fs.writeFileSync(OUTPUT_FILE, JSON.stringify({ updated: new Date().toISOString(), count: out.length, vehicles: out }));
-  console.log(`Wrote ${OUTPUT_FILE} (${out.length} vehicles).`);
+  console.log(`Wrote ${OUTPUT_FILE} (${out.length} vehicles, typical features per car ${medianFeatures}, seats known on ${Math.round(seatsKnown * 100)}%).`);
+
+  // 3. Published, but worth a look: a noticeable number of pages errored or the run ran
+  //    out of time. The new file is still used; the run is marked failed so you hear about it.
+  const warnings = [];
+  if (pageErrors > ids.length * 0.05) warnings.push(`${pageErrors} vehicle pages failed to load`);
+  if (skipped) warnings.push(`${skipped} vehicles skipped because the run hit its 15 minute limit`);
+  if (warnings.length) {
+    alert(`Search updated with ${out.length} vehicles, but ${warnings.join(' and ')}. Check the run log.`);
+    process.exit(2);
+  }
 }
 
 main().catch((err) => { console.error(err); process.exit(1); });
