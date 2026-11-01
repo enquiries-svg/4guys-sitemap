@@ -25,9 +25,25 @@ const fs = require('fs');
 
 const SITEMAP_FILE = 'sitemap.xml';
 const OUTPUT_FILE = 'vehicles.json';
-const FEED_URL = 'https://data.autoplay.co.nz/fbookAd.ashx?id=75&yardList=27&type=3';
+const FEED_URL = process.env.FEED_URL || 'https://data.autoplay.co.nz/fbookAd.ashx?id=75&yardList=27&type=3';
+const SITE = process.env.SITE_URL || 'https://www.4guys.co.nz'; // both overridable for local testing
 const CONCURRENCY = 4;
 const PAGE_TIMEOUT_MS = 30000;
+// Stop starting new vehicles after this long, so a slow night can't hold up the
+// commit step (which also publishes the sitemap and ad feeds).
+const TIME_BUDGET_MS = 15 * 60 * 1000;
+
+// The scraper must not count as a visitor. Without this, every run would send ~250
+// vehicle views to GA4 (incl. the data.4guys.co.nz tagging server), Google Ads
+// remarketing, Meta and TikTok, inflating traffic and putting bots in audiences.
+// Photos, video and fonts are skipped too: the search only needs the page text.
+const BLOCKED_HOSTS = /(^|\.)(google-analytics\.com|googletagmanager\.com|doubleclick\.net|googleadservices\.com|googlesyndication\.com|data\.4guys\.co\.nz|analytics\.tiktok\.com|connect\.facebook\.net|facebook\.com|clarity\.ms|hotjar\.com|tawk\.to)$/i;
+const BLOCKED_PATHS = /^https:\/\/www\.google\.[a-z.]+\/(rmkt|ccm|pagead|ads)\//i;
+const BLOCKED_TYPES = new Set(['image', 'media', 'font']);
+// AutoPlay loads Google's tag library as one link in a chain of scripts, so the
+// library files themselves still load. Only the requests that record a visit
+// (collect/rmkt/ccm/pagead beacons and the pixels) are blocked.
+const ALLOWED_SCRIPTS = /\/(gtag\/js|gtm\.js)(\?|$)/;
 
 // AutoPlay feature label -> search tag. Keep in sync with FEAT in the widget.
 const FEATURE_TAGS = [
@@ -181,18 +197,32 @@ async function main() {
 
   const browser = await chromium.launch();
   const ctx = await browser.newContext();
+  await ctx.route('**/*', (route) => {
+    const req = route.request();
+    let host = '';
+    try { host = new URL(req.url()).hostname; } catch (e) { /* data: etc */ }
+    if (BLOCKED_TYPES.has(req.resourceType())) return route.abort();
+    if (ALLOWED_SCRIPTS.test(req.url()) && req.resourceType() === 'script') return route.continue();
+    if (BLOCKED_HOSTS.test(host) || BLOCKED_PATHS.test(req.url())) return route.abort();
+    return route.continue();
+  });
+  const started = Date.now();
+  let done = 0; let skipped = 0;
   const out = []; const failed = [];
   let next = 0;
 
   async function worker() {
     const page = await ctx.newPage();
     while (next < ids.length) {
+      if (Date.now() - started > TIME_BUDGET_MS) { skipped = ids.length - next; next = ids.length; break; }
       const id = ids[next++];
       const row = feed[id];
       if (!row) { failed.push([id, 'not in AutoPlay feed']); continue; }
       try {
-        await page.goto(`https://www.4guys.co.nz/vehicle-details?id=${id}`, { waitUntil: 'domcontentloaded', timeout: PAGE_TIMEOUT_MS });
-        await page.waitForFunction(() => document.body.textContent.includes('SPECIFICATIONS') && document.body.textContent.includes('DESCRIPTION'), null, { timeout: PAGE_TIMEOUT_MS });
+        await page.goto(`${SITE}/vehicle-details?id=${id}`, { waitUntil: 'domcontentloaded', timeout: PAGE_TIMEOUT_MS });
+        // innerText, not textContent: the headings are "Specifications"/"Description" in the
+        // page source and only shown in capitals by CSS.
+        await page.waitForFunction(() => document.body.innerText.includes('SPECIFICATIONS') && document.body.innerText.includes('DESCRIPTION'), null, { timeout: PAGE_TIMEOUT_MS });
         const expanded = await expandReadMore(page);
         const vdp = await page.evaluate(readVdp);
         if (!expanded) console.warn(`  ${id}: a Read More button would not open; used the hidden page text instead`);
@@ -210,6 +240,7 @@ async function main() {
       } catch (err) {
         failed.push([id, err.message.split('\n')[0]]);
       }
+      if (++done % 25 === 0) console.log(`  ${done}/${ids.length} pages (${out.length} read, ${failed.length} failed) after ${Math.round((Date.now() - started) / 1000)}s`);
     }
     await page.close();
   }
@@ -217,7 +248,7 @@ async function main() {
   await Promise.all(Array.from({ length: CONCURRENCY }, worker));
   await browser.close();
 
-  console.log(`Read ${out.length}/${ids.length} vehicles. ${failed.length} failed.`);
+  console.log(`Read ${out.length}/${ids.length} vehicles in ${Math.round((Date.now() - started) / 1000)}s. ${failed.length} failed${skipped ? `, ${skipped} skipped (time budget)` : ''}.`);
   failed.forEach(([id, why]) => console.warn(`  ${id}: ${why}`));
 
   // Don't publish a half-empty index over a good one if the site was having a bad night.
