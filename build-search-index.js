@@ -138,19 +138,29 @@ function readVdp() {
 // it. Checked live 31 Oct 2026: the button reveals text already in the page and loads no
 // extra vehicle data, but clicking guards against AutoPlay changing that. Returns true
 // once no "Read More" is left showing.
+let loggedClickProblem = false;
 async function expandReadMore(page) {
   const sel = 'button.vdp-btn-readmore-features, button.vdp-btn-readmore-comments';
+  const stillCollapsed = () => page.evaluate((s) => [...document.querySelectorAll(s)]
+    .filter((b) => /read more/i.test(b.textContent)).length, sel);
   for (let round = 0; round < 3; round++) {
-    const buttons = page.locator(sel).filter({ hasText: /read more/i })
-      .or(page.getByRole('button', { name: /^\s*read more\s*$/i }));
+    const buttons = page.locator(sel).filter({ hasText: /read more/i });
     const n = await buttons.count();
     if (n === 0) return true;
     for (let i = n - 1; i >= 0; i--) {
-      try { await buttons.nth(i).click({ timeout: 5000 }); } catch (e) { /* retried next round */ }
+      const b = buttons.nth(i);
+      try {
+        await b.click({ timeout: 3000 });
+      } catch (err) {
+        // Something on the page (a banner, sticky bar) took the click. Press the
+        // button directly instead: same handler as a real click, ignores overlays.
+        if (!loggedClickProblem) { loggedClickProblem = true; console.warn(`  normal Read More click refused, pressing it directly instead: ${err.message.split('\n')[0]}`); }
+        try { await b.evaluate((el) => el.click()); } catch (e) { /* retried next round */ }
+      }
     }
-    await page.waitForTimeout(400);
+    await page.waitForTimeout(300);
   }
-  return (await page.getByRole('button', { name: /^\s*read more\s*$/i }).count()) === 0;
+  return (await stillCollapsed()) === 0;
 }
 
 function deriveFields(vdp, title) {
