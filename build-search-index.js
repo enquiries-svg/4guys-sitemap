@@ -247,7 +247,7 @@ async function main() {
         if (!expanded) console.warn(`  ${id}: a Read More button would not open; used the hidden page text instead`);
         const title = row.title;
         out.push({
-          id, url: row.URL, title, make: row.make, model: row.model, year: +row.year,
+          id, stock: vdp.stockNo || String(row.vehicle_id || ''), url: row.URL, title, make: row.make, model: row.model, year: +row.year,
           price: Math.round(Number(String(row.price).replace(/[^0-9.]/g, ''))),
           km: +row['mileage.value'] || 0,
           body: normaliseBody(row.body_style, vdp.bodyType, title),
