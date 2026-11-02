@@ -167,7 +167,13 @@ async function expandReadMore(page) {
 function deriveFields(vdp, title) {
   const f = vdp.features;
   const num = (re) => { const x = f.find((s) => re.test(s)); const m = x && x.match(/(\d+)/); return m ? +m[1] : null; };
-  const seats = /^\d+$/.test(vdp.seats) ? +vdp.seats : num(/^\d+ Seater$/);
+  let seats = /^\d+$/.test(vdp.seats) ? +vdp.seats : num(/^\d+ Seater$/);
+  // Hand-written listings (mostly American) often only state seats in the description,
+  // e.g. "COUPE (4 SEATER)" or "Five seats". Read it from the full text, not the trimmed copy.
+  if (seats == null) {
+    const m = `${title} ${vdp.description}`.match(/\b(two|three|four|five|six|seven|eight|nine|ten|[2-9]|10)[ -]?(seater|seats?|passenger)\b/i);
+    if (m) seats = { two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10 }[m[1].toLowerCase()] || +m[1];
+  }
   const drive = f.some((s) => /4WD|4X4|AWD|Quattro|xDrive/i.test(s)) ? '4WD/AWD'
     : f.some((s) => /^(2WD|RWD|FWD)$/.test(s)) ? '2WD' : null;
   const fuelText = `${title} ${vdp.fuel}`;
@@ -248,7 +254,8 @@ async function main() {
           colour: vdp.colour || row.exterior_color,
           image: String(row['image[0].url'] || '').replace(/([?&])w=\d+/, '$1w=480').replace(/([?&])h=\d+/, '$1h=360'),
           ...deriveFields(vdp, title),
-          description: vdp.description.slice(0, 600),
+          // Hand-written listings keep the full description: it is their feature list.
+          description: vdp.description.slice(0, (vdp.features.length < 10 || /^(dodge|chevrolet|chrysler|jeep|ram|gmc|cadillac|lincoln)$/i.test(row.make) || /mustang|f-?150|f-?250|f-?350|bronco/i.test(title)) ? 4000 : 600),
         });
       } catch (err) {
         failed.push([id, err.message.split('\n')[0]]);
