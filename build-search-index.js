@@ -56,16 +56,17 @@ const FEATURE_TAGS = [
   ['leather', /^leather|partial leather/i],
   ['heated_seats', /heated seats/i],
   ['cooled_seats', /cooled (&|and) vented|ventilated seats|cooled seats/i], // not "Turbo Intercooled"
-  ['sunroof', /sunroof|moonroof|panoramic/i],
-  ['roof_rails', /roof rails/i],
+  ['sunroof', /sun ?roof|moon ?roof|panoramic/i], // "Sun Roof", "Dual Sunroof"
+  ['roof_rails', /roof (rails?|racks?)/i],
   ['nz_new', /^nz new/i],
   ['parking_sensors', /parking sensors|parking assist/i],
   ['blind_spot', /blind spot/i],
   ['lane_assist', /lane assist|lane keep/i],
-  ['keyless', /keyless/i],
+  ['keyless', /keyless|push button start/i],
   ['navigation', /navigation/i],
   ['service_history', /service history/i],
-  ['power_tailgate', /power tailgate|electric tailgate|power boot/i],
+  ['power_tailgate', /(power|electric|gesture|hands.?free) (tailgate|boot)/i], // "Electric Boot", "Gesture Tailgate"
+  ['heated_wheel', /heated (s\/wheel|steering)/i],
 ];
 
 function idsFromSitemap() {
@@ -179,7 +180,9 @@ function deriveFields(vdp, title) {
   const econ = parseFloat(vdp.economy);
   return {
     seats, isofix: num(/^Isofix/i), child_restraints: num(/^Child Restraints/i), drive, fuel,
-    transmission: /manual/i.test(vdp.transmission) ? 'Manual' : 'Automatic',
+    // The spec field says "Man" or "Auto"; fall back to the features list ("5 Speed Manual")
+    // and the title ("6SPD MANUAL") in case it is blank.
+    transmission: (/^man/i.test(vdp.transmission) || (!vdp.transmission && (f.some((s) => /\bmanual\b/i.test(s)) || /\bmanual\b/i.test(title)))) ? 'Manual' : 'Automatic',
     economy: Number.isFinite(econ) ? econ : null, airbags: num(/AirBags/i),
     features_listed: f.length, features: f, tags,
   };
