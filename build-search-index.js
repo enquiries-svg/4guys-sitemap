@@ -97,10 +97,12 @@ function parseCsv(text) {
 function readVdp() {
   // innerText keeps the line breaks the label/value layout relies on.
   const t = document.body.innerText;
-  const between = (a, b) => {
+  // Text between heading a and whichever end heading comes first. Some listings (the
+  // Nebula Carinas) have no Description, so Features runs straight into Related Cars.
+  const between = (a, ...ends) => {
     const i = t.indexOf(a); if (i < 0) return '';
-    const j = t.indexOf(b, i + a.length);
-    return t.slice(i + a.length, j < 0 ? i + a.length + 4000 : j);
+    const js = ends.map((b) => t.indexOf(b, i + a.length)).filter((j) => j >= 0);
+    return t.slice(i + a.length, js.length ? Math.min(...js) : i + a.length + 4000);
   };
   const label = (name, block) => {
     const m = block.match(new RegExp(name + '\\s*\\n\\s*([^\\n]+)'));
@@ -115,7 +117,7 @@ function readVdp() {
   const clean = (s) => s.replace(/Read (More|Less)/g, '').replace(/\.\.\.(?=\w)/g, '').replace(/\.\.\./g, '').replace(/\s+/g, ' ').trim();
   const head = between('Odometer', 'PRINT');
   const specs = between('SPECIFICATIONS', 'FEATURES');
-  const featureBlock = clean(between('FEATURES', 'DESCRIPTION'));
+  const featureBlock = clean(between('FEATURES', 'DESCRIPTION', 'RELATED CARS'));
   const firstFeature = featureBlock.split(',')[0].trim();
   let full = firstFeature ? clean(smallest(new RegExp('^\\s*' + firstFeature.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s*,'))) : '';
   if (full.length < featureBlock.length) full = featureBlock;
@@ -227,12 +229,12 @@ function deriveFields(vdp, title) {
 
 function normaliseBody(feedBody, vdpBody, title) {
   const b = (vdpBody || feedBody || '').toUpperCase();
+  if (/MOTORHOME|CAMPER|CARAVAN/.test(b) || /nebula|motorhome|campervan/i.test(title)) return 'Motorhome'; // before Ute: Nebula titles say "Ford Ranger"
   if (/SUV/.test(b)) return 'SUV';
   if (/UTILITY|\bUTE\b|double cab|d\/cab|dual cab|pick-?up|hilux|ranger|navara|triton|colorado|\bram\b|silverado|f150/i.test(`${b} ${title}`)) return 'Ute';
   if (/HATCH/.test(b)) return 'Hatchback';
   if (/SEDAN/.test(b)) return 'Sedan';
   if (/WAGON|ESTATE/.test(b)) return 'Wagon';
-  if (/MOTORHOME|CAMPER|CARAVAN/.test(b) || /nebula|motorhome|campervan/i.test(title)) return 'Motorhome';
   if (/VAN|PEOPLE MOVER|MINIVAN|COACH|BUS/.test(b)) return 'Van';
   if (/COUPE|CONVERTIBLE/.test(b)) return 'Coupe';
   return 'Other';
@@ -272,7 +274,8 @@ async function main() {
         await page.goto(`${SITE}/vehicle-details?id=${id}`, { waitUntil: 'domcontentloaded', timeout: PAGE_TIMEOUT_MS });
         // innerText, not textContent: the headings are "Specifications"/"Description" in the
         // page source and only shown in capitals by CSS.
-        await page.waitForFunction(() => document.body.innerText.includes('SPECIFICATIONS') && document.body.innerText.includes('DESCRIPTION'), null, { timeout: PAGE_TIMEOUT_MS });
+        // (Related Cars is the fallback for listings with no Description, like the Nebula Carinas.)
+        await page.waitForFunction(() => document.body.innerText.includes('SPECIFICATIONS') && /DESCRIPTION|RELATED CARS/.test(document.body.innerText), null, { timeout: PAGE_TIMEOUT_MS });
         const expanded = await expandReadMore(page);
         const vdp = await page.evaluate(readVdp);
         if (!expanded) console.warn(`  ${id}: a Read More button would not open; used the hidden page text instead`);
