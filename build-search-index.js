@@ -133,6 +133,37 @@ function readVdp() {
   };
 }
 
+// Runs inside the page. The headline fields (make, model, title, km, price, photo) for
+// vehicles that aren't in AutoPlay's Facebook feed. The feed leaves out cars still waiting
+// on photos and the Nebula Carina motorhomes, but customers can still find them on the
+// site, so the search should too. Top of the page reads:
+//   Back To Results / Vehicle / Make / Model / TITLE IN CAPITALS / Title / Odometer / 75,623km ...
+//   $192,000 was $209,000 / PRINT
+// Some listings have no model in the breadcrumb (Vehicle / Lexus / Title).
+// Checked live 5 Nov 2026 on a Nebula Carina, a photo-coming-soon Kuga, the golf cart,
+// the Lexus LX500D and a normal listing.
+function readHeadline() {
+  const t = document.body.innerText;
+  const start = t.indexOf('Back To Results');
+  const lines = t.slice(Math.max(0, start), t.indexOf('PRINT', start) + 1 || undefined).split('\n').map((s) => s.trim()).filter(Boolean);
+  const odo = lines.indexOf('Odometer');
+  const vi = lines.indexOf('Vehicle');
+  const title = odo > 0 ? lines[odo - 1] : '';
+  const crumbs = vi >= 0 && odo > vi ? lines.slice(vi + 1, odo - 1).filter((s) => s !== title.toUpperCase()) : [];
+  const priceLine = lines.slice(Math.max(odo, 0)).find((s) => /^\$\s?[\d,]{3,}/.test(s)) || '';
+  const img = [...document.querySelectorAll('img')].map((e) => e.getAttribute('src') || e.getAttribute('data-src') || '')
+    .find((s) => /image\.ashx\?/i.test(s));
+  let imageId = '';
+  try { imageId = img ? new URL(img, location.href).searchParams.get('id') || '' : ''; } catch (e) { /* no photo */ }
+  return {
+    title, make: crumbs[0] || '', model: crumbs.length > 1 ? crumbs[1] : '',
+    km: odo > 0 ? lines[odo + 1] || '' : '',
+    price: (priceLine.match(/^\$\s?([\d,]+)/) || [])[1] || '',
+    year: (title.match(/^(19|20)\d\d/) || [])[0] || '',
+    imageId,
+  };
+}
+
 // AutoPlay shows the first part of the Features list and the Description, then a
 // "Read More" button (button.vdp-btn-readmore-features / -comments). Always click every
 // one before reading, so the scraper sees exactly what a customer sees once they expand
@@ -201,6 +232,7 @@ function normaliseBody(feedBody, vdpBody, title) {
   if (/HATCH/.test(b)) return 'Hatchback';
   if (/SEDAN/.test(b)) return 'Sedan';
   if (/WAGON|ESTATE/.test(b)) return 'Wagon';
+  if (/MOTORHOME|CAMPER|CARAVAN/.test(b) || /nebula|motorhome|campervan/i.test(title)) return 'Motorhome';
   if (/VAN|PEOPLE MOVER|MINIVAN|COACH|BUS/.test(b)) return 'Van';
   if (/COUPE|CONVERTIBLE/.test(b)) return 'Coupe';
   return 'Other';
@@ -227,7 +259,7 @@ async function main() {
   });
   const started = Date.now();
   let done = 0; let skipped = 0;
-  const out = []; const failed = [];
+  const out = []; const failed = []; const pageOnly = [];
   let next = 0;
 
   async function worker() {
@@ -236,7 +268,6 @@ async function main() {
       if (Date.now() - started > TIME_BUDGET_MS) { skipped = ids.length - next; next = ids.length; break; }
       const id = ids[next++];
       const row = feed[id];
-      if (!row) { failed.push([id, 'not in AutoPlay feed']); continue; }
       try {
         await page.goto(`${SITE}/vehicle-details?id=${id}`, { waitUntil: 'domcontentloaded', timeout: PAGE_TIMEOUT_MS });
         // innerText, not textContent: the headings are "Specifications"/"Description" in the
@@ -245,17 +276,26 @@ async function main() {
         const expanded = await expandReadMore(page);
         const vdp = await page.evaluate(readVdp);
         if (!expanded) console.warn(`  ${id}: a Read More button would not open; used the hidden page text instead`);
-        const title = row.title;
+        // Not in the feed (photos still coming, Nebula motorhomes): take the headline
+        // fields from the page itself, so the search covers every vehicle on the site.
+        const h = row ? null : await page.evaluate(readHeadline);
+        if (h && !(h.title && h.make && +h.price.replace(/,/g, '') > 0)) throw new Error(`not in AutoPlay feed and the page headline couldn't be read (${JSON.stringify(h)})`);
+        if (h) pageOnly.push(id);
+        const title = row ? row.title : h.title;
+        const make = row ? row.make : h.make;
+        const model = row ? row.model : (h.model || title.replace(/^(19|20)\d\d\s+/, '').slice(make.length).trim().split(/\s+/)[0] || '');
         out.push({
-          id, stock: vdp.stockNo || String(row.vehicle_id || ''), url: row.URL, title, make: row.make, model: row.model, year: +row.year,
-          price: Math.round(Number(String(row.price).replace(/[^0-9.]/g, ''))),
-          km: +row['mileage.value'] || 0,
-          body: normaliseBody(row.body_style, vdp.bodyType, title),
-          colour: vdp.colour || row.exterior_color,
-          image: String(row['image[0].url'] || '').replace(/([?&])w=\d+/, '$1w=480').replace(/([?&])h=\d+/, '$1h=360'),
+          id, stock: vdp.stockNo || String((row && row.vehicle_id) || ''), url: row ? row.URL : `${SITE}/vehicle-details?id=${id}`,
+          title, make, model, year: +(row ? row.year : h.year),
+          price: Math.round(Number(String(row ? row.price : h.price).replace(/[^0-9.]/g, ''))),
+          km: (row ? +row['mileage.value'] : +h.km.replace(/[^0-9]/g, '')) || 0,
+          body: normaliseBody(row && row.body_style, vdp.bodyType, title),
+          colour: vdp.colour && vdp.colour !== 'N/A' ? vdp.colour : (row && row.exterior_color) || '',
+          image: row ? String(row['image[0].url'] || '').replace(/([?&])w=\d+/, '$1w=480').replace(/([?&])h=\d+/, '$1h=360')
+            : (h.imageId ? `https://data.autoplay.co.nz/image.ashx?id=${h.imageId}&w=480&h=360&l=true` : ''),
           ...deriveFields(vdp, title),
           // Hand-written listings keep the full description: it is their feature list.
-          description: vdp.description.slice(0, (vdp.features.length < 10 || /^(dodge|chevrolet|chrysler|jeep|ram|gmc|cadillac|lincoln)$/i.test(row.make) || /mustang|f-?150|f-?250|f-?350|bronco/i.test(title)) ? 4000 : 600),
+          description: vdp.description.slice(0, (vdp.features.length < 10 || /^(dodge|chevrolet|chrysler|jeep|ram|gmc|cadillac|lincoln)$/i.test(make) || /mustang|f-?150|f-?250|f-?350|bronco/i.test(title)) ? 4000 : 600),
         });
       } catch (err) {
         failed.push([id, err.message.split('\n')[0]]);
@@ -270,12 +310,13 @@ async function main() {
 
   console.log(`Read ${out.length}/${ids.length} vehicles in ${Math.round((Date.now() - started) / 1000)}s. ${failed.length} failed${skipped ? `, ${skipped} skipped (time budget)` : ''}.`);
   failed.forEach(([id, why]) => console.warn(`  ${id}: ${why}`));
+  if (pageOnly.length) console.log(`${pageOnly.length} not in AutoPlay's feed (photos coming, motorhomes), read from their own pages instead: ${pageOnly.join(', ')}`);
 
   // Health checks. Anything below makes the step (and so the whole run) fail, which is
   // what triggers GitHub's failed-run email. "::error::" lines show up in that email and
   // at the top of the run page, so the reason is visible without opening the log.
   const alert = (msg) => console.log(`::error title=Vehicle search::${msg}`);
-  const pageErrors = failed.filter(([, why]) => why !== 'not in AutoPlay feed').length;
+  const pageErrors = failed.length;
   const median = (a) => { const x = [...a].sort((p, q) => p - q); return x.length ? x[x.length >> 1] : 0; };
   const medianFeatures = median(out.map((v) => v.features_listed));
   const seatsKnown = out.length ? out.filter((v) => v.seats != null).length / out.length : 0;
