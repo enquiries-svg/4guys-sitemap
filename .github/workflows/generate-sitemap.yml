@@ -24,8 +24,28 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      # Downloads Chromium plus the system packages it needs from Ubuntu's mirrors.
+      # Those mirrors occasionally fail to resolve on GitHub's runners, so each
+      # attempt is capped at 5 minutes and retried up to 3 times. continue-on-error
+      # means a failed install only skips the two steps that need the browser
+      # (sitemap crawl and homepage search); the API-based feeds still refresh,
+      # and the explicit failure check at the bottom keeps the problem visible.
       - name: Install headless browser
-        run: npx playwright install --with-deps chromium
+        id: browser
+        continue-on-error: true
+        timeout-minutes: 18
+        run: |
+          for attempt in 1 2 3; do
+            if timeout 300 npx playwright install --with-deps chromium; then
+              exit 0
+            fi
+            echo "Browser install attempt $attempt failed."
+            if [ "$attempt" -lt 3 ]; then
+              echo "Retrying in 30 seconds..."
+              sleep 30
+            fi
+          done
+          exit 1
 
       # continue-on-error here means a flaky website crawl (e.g. a button that
       # isn't quite ready to click yet) can't block the remarketing feed step
@@ -34,6 +54,7 @@ jobs:
       # it stays visible - it just no longer blocks the other feed.
       - name: Generate sitemap.xml
         id: crawl
+        if: steps.browser.outcome == 'success'
         continue-on-error: true
         run: node crawl-sitemap.js
 
@@ -108,6 +129,12 @@ jobs:
             git commit -m "Update sitemap.xml, remarketing-feed.csv, meta-vehicle-feed.csv, tiktok-vehicle-feed.csv, vehicles.json and indexnow-snapshot.json ($(date -u +%Y-%m-%d))"
             git push
           fi
+
+      - name: Fail run if the headless browser install failed
+        if: steps.browser.outcome == 'failure'
+        run: |
+          echo "Headless browser install failed after 3 attempts - remarketing, Meta and TikTok feeds were still refreshed above, but the sitemap crawl and homepage search (vehicles.json) were skipped this run."
+          exit 1
 
       - name: Fail run if the sitemap crawl failed
         if: steps.crawl.outcome == 'failure'
